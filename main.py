@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import f1_score, make_scorer
 from catboost import CatBoostClassifier, Pool
 import optuna
-from optuna import CatBoostPruningCallback
+from optuna_integration import CatBoostPruningCallback
 
 df = pd.read_csv('train.csv')
 df_test = pd.read_csv('test.csv')
@@ -34,7 +34,7 @@ X['bed_surface'] = X['bed_surface'].fillna(modes)
 df['bed_surface'] = df['bed_surface'].fillna(modes)
 df_test['bed_surface'] = df_test['bed_surface'].fillna(modes)
 
-cat_features = X.select_dtypes(include=['str', 'category']).columns.tolist()
+cat_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
 print(cat_features)
 
 X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=54)
@@ -46,26 +46,26 @@ test_pool = Pool(df_test, cat_features=cat_features)
 def objective(trial):
     param_optuna = {
         'iterations': 2000,
-        'lerning_rate': trial.suggest_float('lerning_rate', 0.01, 0.1, log=True),
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1, log=True),
         'depth': trial.suggest_int('depth', 4, 8),
         'l2_leaf_reg': trial.suggest_int('l2_leaf_reg', 1, 20),
         'random_strength': trial.suggest_float('random_strength', 0.0, 2.0),
-        'bagging_temperature': trial.suggest_float('bagging_tempetature', 0.0, 1.0),
+        'bagging_temperature': trial.suggest_float('bagging_temperature', 0.0, 1.0),
         'border_count': trial.suggest_int('border_count', 128, 254),
         'loss_function': 'Logloss',
         'random_seed': 54,
-        'verbose': True,
+        'verbose': 1,
         'task_type': 'CPU'
     }
 
-    pruning_callback = CatBoostPruningCallback(trial, 'MacroF1')
+    pruning_callback = CatBoostPruningCallback(trial, 'TotalF1:average=Macro')
     model = CatBoostClassifier(**param_optuna, eval_metric='TotalF1:average=Macro')
     model.fit(
         train_pool,
         eval_set=val_pool,
         early_stopping_rounds=50,
         callbacks=[pruning_callback],
-        verbose=True,
+        verbose=1,
     )
     preds = model.predict(X_val)
     preds = np.squeeze(preds)
@@ -73,7 +73,7 @@ def objective(trial):
     return score
 
 study = optuna.create_study(
-    directions='maximize',
+    direction='maximize',
     pruner=optuna.pruners.MedianPruner(n_warmup_steps=100)
 )
 
