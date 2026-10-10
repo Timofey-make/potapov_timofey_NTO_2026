@@ -7,6 +7,22 @@ from catboost import CatBoostClassifier, Pool
 df = pd.read_csv('train.csv')
 df_test = pd.read_csv('test.csv')
 
+df['mean_nozzle_temp'] = df.groupby('material')['nozzle_temp_c'].transform('mean')
+df['deviation_nozzle_temp'] = df['nozzle_temp_c'] - df['mean_nozzle_temp']
+df_test['mean_nozzle_temp'] = df_test.groupby('material')['nozzle_temp_c'].transform('mean')
+df_test['deviation_nozzle_temp'] = df_test['nozzle_temp_c'] - df_test['mean_nozzle_temp']
+
+df['mean_bed_temp'] = df.groupby('material')['bed_temp_c'].transform('mean')
+df['deviation_bed_temp'] = df['bed_temp_c'] - df['mean_bed_temp']
+df_test['mean_bed_temp'] = df_test.groupby('material')['bed_temp_c'].transform('mean')
+df_test['deviation_bed_temp'] = df_test['bed_temp_c'] - df_test['mean_bed_temp']
+
+df['delta_ambient_temp'] = df['bed_temp_c'] - df['ambient_temp_c']
+df_test['delta_ambient_temp'] = df_test['bed_temp_c'] - df_test['ambient_temp_c']
+
+df = df.drop(columns=['mean_nozzle_temp', 'mean_bed_temp'])
+df_test = df_test.drop(columns=['mean_nozzle_temp', 'mean_bed_temp'])
+
 X = df.drop(columns=['target', 'id'])
 Y = df['target']
 
@@ -32,9 +48,13 @@ model = CatBoostClassifier(
 )
 
 param_grid = {
-    'iterations': [600, 1000, 1500],
-    'learning_rate': [0.01, 0.03, 0.05, 0.1],
-    'depth': [4, 6, 8, 10],
+    'iterations': [2000],
+    'learning_rate': [0.03, 0.05, 0.1],
+    'depth': [4, 6, 8],
+    'l2_leaf_reg': [1,5,10,20],
+    'random_strength': [0.0, 1.0, 2.0],
+    'bagging_temperature': [0.0, 0.5, 1.0],
+    'border_count': [128, 254],
 }
 
 grid_search = GridSearchCV(
@@ -43,10 +63,10 @@ grid_search = GridSearchCV(
     cv=2,
     scoring=macro_f1_scorer,
     n_jobs=-1,
-    verbose=1
+    verbose=1,
 )
 
-grid_search.fit(X_train, y_train, cat_features=cat_features)
+grid_search.fit=cat_features, (X_train, y_train, cat_featuresearly_stopping_rounds=100)
 
 print(f"Лучшие параметры: {grid_search.best_params_}")
 print(f"Лучшая точность: {grid_search.best_score_}")
@@ -71,5 +91,3 @@ submission = pd.DataFrame({
     'target': preds,
 })
 submission.to_csv('submissions.csv', index=False)
-
-
