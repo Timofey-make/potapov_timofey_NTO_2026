@@ -10,6 +10,27 @@ from optuna_integration import CatBoostPruningCallback
 df = pd.read_csv('train.csv')
 df_test = pd.read_csv('test.csv')
 
+df['mass_per_minute'] = df['model_mass_g'] / df['estimated_time_min']
+df_test['mass_per_minute'] = df_test['model_mass_g'] / df_test['estimated_time_min']
+df['minute_per_mass'] = df['estimated_time_min'] / df['model_mass_g']
+df_test['minute_per_mass'] = df_test['estimated_time_min'] / df_test['model_mass_g'] 
+
+df['area_per_mass'] = df['contact_area_cm2'] / df['model_mass_g']
+df['mass_per_area'] = df['model_mass_g'] / df['contact_area_cm2']
+df_test['area_per_mass'] = df_test['contact_area_cm2'] / df_test['model_mass_g']
+df_test['mass_per_area'] = df_test['model_mass_g'] / df_test['contact_area_cm2']
+
+df['overhang_danger'] = df['overhang_angle_deg'] * df['print_speed_mm_s']
+df_test['overhang_danger'] = df_test['overhang_angle_deg'] * df_test['print_speed_mm_s']
+
+df['mass_per_infill'] = df['model_mass_g'] * df['infill_percent']
+df_test['mass_per_infill'] = df_test['model_mass_g'] * df_test['infill_percent']
+
+df['mean_cooling_percent'] = df.groupby('material')['cooling_percent'].transform('mean')
+df['deviation_cooling_percent'] = df['cooling_percent'] - df['mean_cooling_percent']
+df_test['mean_cooling_percent'] = df_test.groupby('material')['cooling_percent'].transform('mean')
+df_test['deviation_cooling_percent'] = df_test['cooling_percent'] - df_test['mean_cooling_percent']
+
 df['mean_nozzle_temp'] = df.groupby('material')['nozzle_temp_c'].transform('mean')
 df['deviation_nozzle_temp'] = df['nozzle_temp_c'] - df['mean_nozzle_temp']
 df_test['mean_nozzle_temp'] = df_test.groupby('material')['nozzle_temp_c'].transform('mean')
